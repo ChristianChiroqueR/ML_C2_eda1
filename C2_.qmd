@@ -1,0 +1,382 @@
+---
+title: "Análisis Exploratorio de Datos para Machine Learning I"
+subtitle: "Primeros pasos con tidyverse: importación, estructura y manipulación básica"
+author: "Christian Chiroque"
+format: 
+  revealjs:
+    transition: fade
+    slide-number: true
+    logo: images/pucp.png
+    footer: "Christian Chiroque Ruiz"
+---
+
+## Etapas de un proyecto de ML
+
+Recuerda las etapas que hemos establecido:
+
+![](images/dm.jpg)
+
+Igual que un chef no cocina con ingredientes sucios o sin cortar, en ML no se puede usar la data en bruto.
+
+
+# Entendiendo el negocio
+
+## Contexto
+
+::: columns
+::: column
+Eres parte del equipo de investigación del Grupo de Acción Financiera Internacional que brinda información para la lucha contra diversos crímenes financieros, entre estos el lavado de activos. 
+:::
+
+::: column
+![](images/fatf.jpg)
+:::
+:::
+
+
+## Pregunta
+
+Se desea desarrollar un modelo predictivo que pueda predecir el riesgo de LAFT en un país a partir de distintas variables sociales, políticas o económicas. 
+
+Esto será de gran ayuda para los procesos de seguimiento y evaluación que el GAFI realiza a nivel mundial.
+
+## Instalamos y abrimos la librería
+
+![](images/tidyverse.png)
+
+```{r}
+#| echo: true
+#| message: true
+#| warning: true
+# install.packages("tidyverse")
+library(tidyverse)
+```
+
+## Importación de dataset
+
+Podemos abrir nuestra base de datos utilizando:
+
+```{r}
+#| echo: true
+#| message: true
+#| warning: true
+library(readxl)
+data<-read_xlsx("AML_1.xlsx")
+data
+```
+
+
+# Entendiendo mi data
+
+## Realidad
+
+::: columns
+::: column
+- Las fases de comprensión y preparación de los datos suelen ocupar la mayor parte del esfuerzo de un proyecto (se suele hablar de entre 60% y 80%).
+
+- No obstante es la parte con menos hype. 
+:::
+
+::: column
+![](images/meme_eda_2.jpg){out-height="80%"}
+:::
+:::
+
+
+## Objetivo
+
+Los pasos mínimos que aprenderemos será:
+
+-   Importación de datos
+-   Identificar dimensión de dataset
+-   Identificar el tipo de atributos (variables)
+-   Resumir
+-   Visualizar
+-   Identificar problemas potenciales
+
+## Bienvenidos al Tidyverse
+
+El tidyverse es un conjunto de paquetes de R diseñados para trabajar de forma coherente con datos:
+
+-   Datos ordenados (tidy data): cada columna es una variable, cada fila es una observación y cada celda un valor.
+-   Gramática consistente: las funciones siguen una lógica similar y se combinan con el operador \|\> o %\>% (pipe) para crear flujos de trabajo legibles.
+
+::: callout-warning
+Para entender Tidymodels primero debemos aprender Tidyverse.
+:::
+
+## Paquetes del tidyverse
+
+![](images/paquetestidyverse.png)
+
+## Exploración inicial
+
+¿Qué podemos identificar?
+
+```{r}
+#| echo: true
+glimpse(data)
+```
+
+## Identificación teórica de las variables
+
+![](images/variables.png)
+
+## Configuración inicial: numéricas
+
+Detectamos una variable que debería ser numérica pero tiene otra configuración.
+
+```{r}
+#| echo: true
+str(data$`antimoneylaundering Index of Basel Institute`)
+```
+Podemos forzar a que sea leída como numérica:
+
+```{r}
+#| echo: true
+as.numeric(data$`antimoneylaundering Index of Basel Institute`)
+```
+
+## Cuidado
+
+::: callout-important
+Debes crear un nuevo objeto o sobrescribir uno existente usando el símbolo de asignación; de lo contrario, el programa solo mostrará los cambios, pero no los aplicará realmente.
+:::
+
+```{r}
+#| echo: true
+data$`antimoneylaundering Index of Basel Institute` <- as.numeric(data$`antimoneylaundering Index of Basel Institute`)
+```
+
+
+::: callout-important
+En R, NA significa Not Available y se usa para representar un valor faltante o desconocido en los datos.
+:::
+
+
+## Configuración inicial: factores
+
+ - Tipo especial de objeto para datos categóricos.
+
+ - Guardan la categoría como etiqueta (nivel).
+
+ - Permiten que R distinga entre categóricas nominales (ej. color: rojo, azul, verde) o categóricas ordinales (ej. nivel: bajo < medio < alto).
+
+::: callout-important
+Los factores ayudan a ordenar y entender categorías antes de transformarlas en números para un modelo. Si no lo haces, puedes errar tanto en la parte descriptiva como la de modelamiento.
+:::
+
+## Configuración inicial: factores no ordenados
+
+Veamos la variable var_151_4:
+
+```{r}
+#| echo: true
+str(data$var_151_4)
+```
+Lo convertimos en factor no ordenado:
+
+```{r}
+#| echo: true
+data$var_151_4 <- factor(data$var_151_4)
+```
+
+Confirmamos:
+
+```{r}
+#| echo: true
+str(data$var_151_4)
+```
+
+
+## Configuración inicial: factores ordenados
+
+Veamos la variable Organized_Crime_Index_cat:
+
+```{r}
+#| echo: true
+str(data$Organized_Crime_Index_cat)
+```
+
+Lo convertimos en factor ordenado:
+
+```{r}
+#| echo: true
+data$Organized_Crime_Index_cat <- factor(data$Organized_Crime_Index_cat,
+                                         levels = c("Bajo", "Medio", "Alto"), 
+                                         ordered = TRUE)
+```
+
+Confirmamos:
+
+```{r}
+#| echo: true
+str(data$Organized_Crime_Index_cat)
+```
+
+
+## Estadísticos descriptivos
+
+Para comenzar con la exploración podemos utilizar la función ´summary()´. Por ejemplo, con una variable numérica:
+
+```{r}
+#| echo: true
+summary(data$`antimoneylaundering Index of Basel Institute`)
+```
+
+O una variable factor:
+
+```{r}
+#| echo: true
+summary(data$Organized_Crime_Index_cat)
+```
+
+
+
+## Criterios para seleccionar variables
+
+- Mantener solo variables relevantes para el objetivo.
+
+- Descartar variables con varianza cero (no cambia).
+
+- Elegir variables con pocos valores faltantes o, si los hay, aplicar **imputación** (después volveremos a esto).
+
+
+## Tu turno: selecciona tus variables
+
+A la luz de los criterios expuesto, ¿qué variables no vamos a utilizar?
+
+
+## Seleccionamos variables con select()
+
+Puedo escribir el nombre o número de la variable o variables que quiero seleccionar:
+
+```{r}
+#| echo: true
+data |> select(1)
+```
+
+
+## Seleccionamos variables con select()
+
+Puedo escribir el nombre o número de la variable o variables que **NO** quiero seleccionar:
+
+```{r}
+#| echo: true
+data |> select(-1)
+```
+
+## Entonces...
+
+```{r}
+#| echo: true
+data <- data |> 
+          select(-`Año de medicion`,     # Cero varianza
+                 -var_151_2,              # Número de orden, no es importante.
+                 -`Freedom in the World`) # Muchos perdidos
+# Recuerda que si el nombre tiene espacios tendrás que escribirlo entre ``. ALT + 96
+```
+
+Y nos quedamos con:
+
+```{r}
+names(data)
+```
+
+
+## Criterios para nombrar variables
+
+- Mantenlo simple: mi_variable.
+
+- Ser descriptivo y claro: mejor edad_promedio que ep o x1.
+
+- Evitar tildes, espacios, mayúsculas al inicio o caracteres especiales.
+
+- Consistencia: Mantener el mismo estilo.
+
+- Evitar nombres demasiado largos.
+
+
+## Tu turno: renombra tus variables
+
+Analiza nuevamente las variables e identifica cuáles deberías editar.
+
+```{r}
+#| echo: true
+names(data)
+```
+
+## Cambiamos el nombre con rename()
+
+Podemos utilizar la función rename(). 
+
+Puedes escribir el pipe utilizando Ctrl + Shift + M.
+
+```{r}
+#| echo: true
+data <- data |> rename(pais=var_151_3)
+names(data)
+```
+
+
+## Cambiamos el nombre con rename()
+
+```{r}
+#| echo: true
+data <- data |> rename(continente=var_151_4, 
+                       aml_index=`antimoneylaundering Index of Basel Institute`,
+                       matricula= Matricula,
+                       pbi_pc=`PBI PC`,
+                       pobreza=Pobreza,
+                       urbano=`porcentaje URBANO`,
+                       educacion=`Gasto en educacion`,
+                       cpi_index= CPI_Index,
+                       rule_of_law=Rule_of_Law,
+                       democracy_index=Democracy_Index,
+                       democracy_index_cat=Democracy_Index_cat,
+                       organized_crime_index= Organized_Crime_Index,
+                       organized_crime_index_cat=Organized_Crime_Index_cat)
+names(data)
+```
+
+## Lista final de variables
+
+::: columns
+::: column
+**Variables numéricas (10):**
+
+1. aml_index
+
+2. matricula
+
+3. pbi_pc
+
+4. pobreza
+
+5. urbano
+
+6. educacion
+
+7. cpi_index
+
+8. rule_of_law
+:::
+
+::: column
+
+9. democracy_index
+
+10. organized_crime_index
+
+**Factores (4):**
+
+1. continente
+
+2. region
+
+3. democracy_index_cat
+
+4. organized_crime_index_cat
+:::
+:::
+
